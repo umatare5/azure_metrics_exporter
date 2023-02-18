@@ -17,6 +17,7 @@ type Config struct {
 	Credentials                 Credentials     `yaml:"credentials"`
 	Targets                     []Target        `yaml:"targets"`
 	ResourceGroups              []ResourceGroup `yaml:"resource_groups"`
+	ResourceGroupTemplates      []ResourceGroup `yaml:"resource_group_templates"`
 	ResourceTags                []ResourceTag   `yaml:"resource_tags"`
 
 	// Catches all undefined fields and must be empty after parsing.
