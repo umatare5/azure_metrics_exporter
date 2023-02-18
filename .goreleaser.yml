@@ -1,0 +1,40 @@
+project_name: azure_metrics_exporter
+
+env:
+  - GO111MODULE=on
+  - BIN_VERSION=0.1.0-pre0
+
+# Build destination
+github_urls:
+  # set to true if you use a self-signed certificate
+  skip_tls_verify: false
+
+before:
+  hooks:
+    - go mod tidy
+
+builds:
+  - id: azure_metrics_exporter
+    binary: azure_metrics_exporter
+    targets:
+      - linux_amd64
+      - linux_arm64
+    ldflags:
+    env:
+      - CGO_ENABLED=0
+    asmflags:
+      - all=-trimpath=.
+    gcflags:
+      - all=-trimpath=.
+
+archives:
+  - name_template: '{{ .ProjectName }}-{{ .Env.BIN_VERSION }}.{{ .Os }}-{{ .Arch }}{{ if .Arm }}v{{ .Arm }}{{ end }}'
+    format_overrides:
+      - goos: windows
+        format: zip
+
+release:
+  prerelease: auto
+
+checksum:
+  name_template: "{{ .ProjectName }}-{{.Env.BIN_VERSION }}_checksums.txt"
