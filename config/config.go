@@ -19,6 +19,7 @@ type Config struct {
 	ResourceGroups              []ResourceGroup `yaml:"resource_groups"`
 	ResourceGroupTemplates      []ResourceGroup `yaml:"resource_group_templates"`
 	ResourceTags                []ResourceTag   `yaml:"resource_tags"`
+	ResourceTagTemplates        []ResourceTag   `yaml:"resource_tag_templates"`
 
 	// Catches all undefined fields and must be empty after parsing.
 	XXX map[string]interface{} `yaml:",inline"`
