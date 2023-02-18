@@ -154,6 +154,34 @@ In order to get all the metric namespaces for the resources specified in your co
 
 This will print your resource id's application/service name along with a list of each of the available metric namespaces that you can query for for that resource.
 
+### Writing config using YAML anchor
+
+`resource_groups` and `resource_tags` can be written simply using YAML anchors.
+
+* Use `resource_group_templates` for `resource_groups`
+* Use `resource_tag_templates` for `resource_tags`
+
+```yaml
+resource_group_templates:
+  # templates for resource_group
+  - &webapp1_resource_group
+    resource_group: "webapps1"
+  - &webapp2_resource_group
+    resource_group: "webapps2"
+  # templates for resource_types and metrics
+  - &virtual_machine_metrics
+    resource_types:
+      - "Microsoft.Compute/virtualMachines"
+    metrics:
+      - name: "CPU Credits Consumed"
+
+resource_groups:
+  - <<: *webapp1_resource_group
+    <<: *virtual_machine_metrics
+  - <<: *webapp2_resource_group
+    <<: *virtual_machine_metrics
+```
+
 ## Prometheus configuration
 
 ### Example config
