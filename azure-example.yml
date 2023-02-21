@@ -2,10 +2,10 @@
 active_directory_authority_url: "https://login.microsoftonline.com/"
 resource_manager_url: "https://management.azure.com/"
 credentials:
-  subscription_id: <secret>
-  client_id: <secret>
-  client_secret: <secret>
-  tenant_id: <secret>
+  subscription_id: secret
+  client_id: secret
+  client_secret: secret
+  tenant_id: secret
 
 targets:
   - resource: "/resourceGroups/blog-group/providers/Microsoft.Web/sites/blog"
