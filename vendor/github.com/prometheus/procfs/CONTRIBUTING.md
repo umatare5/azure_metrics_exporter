@@ -86,23 +86,25 @@ should contain the path to the file(s) being read and a URL of the linux kernel 
 Most functionality in this library consists of reading files and then parsing the text into structured data.  In most
 cases reading and parsing should be separated into different functions/methods with a public `fs.Thing()` method and 
 a private `parseThing(r Reader)` function.  This provides a logical separation and allows parsing to be tested
-directly without the need to read from the filesystem.  Using a `Reader` argument is preferred for parsing the contents 
-of a single file.  When a set of files in a directory needs to be parsed, then a `path` string parameter to the parse
-function can be used.
+directly without the need to read from the filesystem.  Using a `Reader` argument is preferred over other data types
+such as `string` or `*File` because it provides the most flexibility regarding the data source.  When a set of files 
+in a directory needs to be parsed, then a `path` string parameter to the parse function can be used instead.
 
 ### /proc and /sys filesystem I/O 
 
-The `proc` and `sys` filesystems are pseudo file systems and work a bit differently from standard disk I/O.  Many of the files
-are changing continuously and the data being read can in some cases change between subsequent reads in the same file.
-Also, most of the files are relatively small (less than a few KBs). Therefore, for most files it's recommended to read the full
-file in a single operation using something like `ioutil.ReadFile`.  Reading files one line at a time while
-the file is kept open should be avoided.
+The `proc` and `sys` filesystems are pseudo file systems and work a bit differently from standard disk I/O.  
+Many of the files are changing continuously and the data being read can in some cases change between subsequent 
+reads in the same file.  Also, most of the files are relatively small (less than a few KBs), and system calls
+to the `stat` function will often return the wrong size.  Therefore, for most files it's recommended to read the 
+full file in a single operation using an internal utility function called `util.ReadFileNoStat`.
+This function is similar to `os.ReadFile`, but it avoids the system call to `stat` to get the current size of
+the file.
 
 Note that parsing the file's contents can still be performed one line at a time.  This is done by first reading 
 the full file, and then using a scanner on the `[]byte` or `string` containing the data.
 
 ```
-    data, err := ioutil.ReadFile("/proc/cpuinfo")
+    data, err := util.ReadFileNoStat("/proc/cpuinfo")
     if err != nil {
         return err
     }
@@ -111,7 +113,7 @@ the full file, and then using a scanner on the `[]byte` or `string` containing t
 ```
 
 The `/sys` filesystem contains many very small files which contain only a single numeric or text value.  These files
-can be read using an internal function called `util.SysReadFile` which is similar to `ioutil.ReadFile` but does
+can be read using an internal function called `util.SysReadFile` which is similar to `os.ReadFile` but does
 not bother to check the size of the file before reading.
 ```
     data, err := util.SysReadFile("/sys/class/power_supply/BAT0/capacity")
