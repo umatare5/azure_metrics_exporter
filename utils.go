@@ -54,6 +54,11 @@ func CreateResourceLabels(resourceURL string) map[string]string {
 	return labels
 }
 
+func AppendLabel(labels map[string]string, key string, value string) map[string]string {
+	labels[key] = value
+	return labels
+}
+
 // GetResourceType returns the resource type with the namespace
 func GetResourceType(resourceURL string) string {
 	resource := strings.Split(resourceURL, "/")
