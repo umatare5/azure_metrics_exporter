@@ -48,6 +48,7 @@ type resourceMeta struct {
 	resourceID      string
 	resourceURL     string
 	metricNamespace string
+	metricFilter    string
 	metrics         string
 	aggregations    []string
 	resource        AzureResource
@@ -69,52 +70,27 @@ func (c *Collector) extractMetrics(ch chan<- prometheus.Metric, rm resourceMeta,
 	}
 
 	for _, value := range metricValueData.Value {
-		// Ensure Azure metric names conform to Prometheus metric name conventions
-		metricName := strings.Replace(value.Name.Value, " ", "_", -1)
-		metricName = strings.ToLower(metricName + "_" + value.Unit)
-		metricName = strings.Replace(metricName, "/", "_per_", -1)
-		if rm.metricNamespace != "" {
-			metricName = strings.ToLower(rm.metricNamespace + "_" + metricName)
-		}
-		metricName = invalidMetricChars.ReplaceAllString(metricName, "_")
-		if !strings.HasPrefix(metricName, "azure_") {
-			metricName = "azure_" + metricName
-		}
+		metricName := createMetricName(value.Name.Value, value.Unit, rm.metricNamespace)
 
 		if len(value.Timeseries) > 0 {
-			metricValue := value.Timeseries[0].Data[len(value.Timeseries[0].Data)-1]
 			labels := CreateResourceLabels(rm.resourceURL)
 
-			if hasAggregation(rm.aggregations, "Total") {
-				ch <- prometheus.MustNewConstMetric(
-					prometheus.NewDesc(metricName+"_total", metricName+"_total", nil, labels),
-					prometheus.GaugeValue,
-					metricValue.Total,
-				)
+			if len(value.Timeseries[0].Metadatavalues) == 0 {
+				metricValue := value.Timeseries[0].Data[len(value.Timeseries[0].Data)-1]
+				generateMetric(ch, metricName, "Total", metricValue.Total, labels, rm.aggregations)
+				generateMetric(ch, metricName, "Average", metricValue.Average, labels, rm.aggregations)
+				generateMetric(ch, metricName, "Minimum", metricValue.Minimum, labels, rm.aggregations)
+				generateMetric(ch, metricName, "Maximum", metricValue.Maximum, labels, rm.aggregations)
+				continue
 			}
 
-			if hasAggregation(rm.aggregations, "Average") {
-				ch <- prometheus.MustNewConstMetric(
-					prometheus.NewDesc(metricName+"_average", metricName+"_average", nil, labels),
-					prometheus.GaugeValue,
-					metricValue.Average,
-				)
-			}
-
-			if hasAggregation(rm.aggregations, "Minimum") {
-				ch <- prometheus.MustNewConstMetric(
-					prometheus.NewDesc(metricName+"_min", metricName+"_min", nil, labels),
-					prometheus.GaugeValue,
-					metricValue.Minimum,
-				)
-			}
-
-			if hasAggregation(rm.aggregations, "Maximum") {
-				ch <- prometheus.MustNewConstMetric(
-					prometheus.NewDesc(metricName+"_max", metricName+"_max", nil, labels),
-					prometheus.GaugeValue,
-					metricValue.Maximum,
-				)
+			for _, metric := range value.Timeseries {
+				metricValue := metric.Data[len(value.Timeseries[0].Data)-1]
+				AppendLabel(labels, metric.Metadatavalues[0].Name.Value, metric.Metadatavalues[0].Value)
+				generateMetric(ch, metricName, "Total", metricValue.Total, labels, rm.aggregations)
+				generateMetric(ch, metricName, "Average", metricValue.Average, labels, rm.aggregations)
+				generateMetric(ch, metricName, "Minimum", metricValue.Minimum, labels, rm.aggregations)
+				generateMetric(ch, metricName, "Maximum", metricValue.Maximum, labels, rm.aggregations)
 			}
 		}
 	}
@@ -127,6 +103,33 @@ func (c *Collector) extractMetrics(ch chan<- prometheus.Metric, rm resourceMeta,
 			1,
 		)
 		publishedResources[rm.resource.ID] = true
+	}
+}
+
+// Ensure Azure metric names conform to Prometheus metric name conventions
+func createMetricName(name string, unit string, namespace string) string {
+	name = strings.Replace(name, " ", "_", -1)
+	if unit != "Unspecified" {
+		unit = strings.ToLower(unit)
+		unit = strings.Replace(unit, "/", "_per_", -1)
+		name = strings.ToLower(name + "_" + unit)
+	}
+	if namespace != "" {
+		name = strings.ToLower(namespace + "_" + name)
+	}
+	if !strings.HasPrefix(name, "azure.") {
+		name = "azure_" + name
+	}
+	return invalidMetricChars.ReplaceAllString(name, "_")
+}
+
+func generateMetric(ch chan<- prometheus.Metric, metricName string, aggregation string, value float64, labels map[string]string, aggregations []string) {
+	if hasAggregation(aggregations, aggregation) {
+		ch <- prometheus.MustNewConstMetric(
+			prometheus.NewDesc(metricName+"_"+strings.ToLower(aggregation), metricName+"_"+strings.ToLower(aggregation), nil, labels),
+			prometheus.GaugeValue,
+			value,
+		)
 	}
 }
 
@@ -235,9 +238,10 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 
 		rm.resourceID = target.Resource
 		rm.metricNamespace = target.MetricNamespace
+		rm.metricFilter = target.MetricFilter
 		rm.metrics = strings.Join(metrics, ",")
 		rm.aggregations = filterAggregations(target.Aggregations)
-		rm.resourceURL = resourceURLFrom(target.Resource, rm.metricNamespace, rm.metrics, rm.aggregations)
+		rm.resourceURL = resourceURLFrom(target.Resource, rm.metricNamespace, rm.metricFilter, rm.metrics, rm.aggregations)
 		incompleteResources = append(incompleteResources, rm)
 	}
 
@@ -260,9 +264,10 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 			var rm resourceMeta
 			rm.resourceID = f.ID
 			rm.metricNamespace = resourceGroup.MetricNamespace
+			rm.metricFilter = resourceGroup.MetricFilter
 			rm.metrics = metricsStr
 			rm.aggregations = filterAggregations(resourceGroup.Aggregations)
-			rm.resourceURL = resourceURLFrom(f.ID, rm.metricNamespace, rm.metrics, rm.aggregations)
+			rm.resourceURL = resourceURLFrom(f.ID, rm.metricNamespace, rm.metricFilter, rm.metrics, rm.aggregations)
 			rm.resource = f
 			resources = append(resources, rm)
 		}
@@ -288,9 +293,10 @@ func (c *Collector) Collect(ch chan<- prometheus.Metric) {
 			var rm resourceMeta
 			rm.resourceID = f.ID
 			rm.metricNamespace = resourceTag.MetricNamespace
+			rm.metricFilter = resourceTag.MetricFilter
 			rm.metrics = metricsStr
 			rm.aggregations = filterAggregations(resourceTag.Aggregations)
-			rm.resourceURL = resourceURLFrom(f.ID, rm.metricNamespace, rm.metrics, rm.aggregations)
+			rm.resourceURL = resourceURLFrom(f.ID, rm.metricNamespace, rm.metricFilter, rm.metrics, rm.aggregations)
 			incompleteResources = append(incompleteResources, rm)
 		}
 	}

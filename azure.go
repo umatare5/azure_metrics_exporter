@@ -71,6 +71,13 @@ type AzureMetricValueResponse struct {
 				Minimum   float64 `json:"minimum"`
 				Maximum   float64 `json:"maximum"`
 			} `json:"data"`
+			Metadatavalues []struct {
+				Name struct {
+					LocalizedValue string `json:"localizedValue"`
+					Value          string `json:"value"`
+				} `json:"name"`
+				Value string `json:"value"`
+			} `json:"metadatavalues"`
 		} `json:"timeseries"`
 		ID   string `json:"id"`
 		Name struct {
@@ -584,7 +591,7 @@ type batchRequest struct {
 	Method      string `json:"httpMethod"`
 }
 
-func resourceURLFrom(resource string, metricNamespace string, metricNames string, aggregations []string) string {
+func resourceURLFrom(resource string, metricNamespace string, metricFilter string, metricNames string, aggregations []string) string {
 	apiVersion := "2018-01-01"
 
 	path := fmt.Sprintf(
@@ -602,10 +609,14 @@ func resourceURLFrom(resource string, metricNamespace string, metricNames string
 	if metricNamespace != "" {
 		values.Add("metricnamespace", metricNamespace)
 	}
+	if metricFilter != "" {
+		values.Add("$filter", metricFilter)
+	}
 	filtered := filterAggregations(aggregations)
 	values.Add("aggregation", strings.Join(filtered, ","))
 	values.Add("timespan", fmt.Sprintf("%s/%s", startTime, endTime))
 	values.Add("api-version", apiVersion)
+	values.Add("interval", "FULL")
 
 	url := url.URL{
 		Path:     path,

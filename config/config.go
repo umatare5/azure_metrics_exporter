@@ -149,6 +149,7 @@ type Credentials struct {
 type Target struct {
 	Resource        string   `yaml:"resource"`
 	MetricNamespace string   `yaml:"metric_namespace"`
+	MetricFilter    string   `yaml:"metric_filter"`
 	Metrics         []Metric `yaml:"metrics"`
 	Aggregations    []string `yaml:"aggregations"`
 
@@ -159,6 +160,7 @@ type Target struct {
 type ResourceGroup struct {
 	ResourceGroup         string   `yaml:"resource_group"`
 	MetricNamespace       string   `yaml:"metric_namespace"`
+	MetricFilter          string   `yaml:"metric_filter"`
 	ResourceTypes         []string `yaml:"resource_types"`
 	ResourceNameIncludeRe []Regexp `yaml:"resource_name_include_re"`
 	ResourceNameExcludeRe []Regexp `yaml:"resource_name_exclude_re"`
@@ -173,6 +175,7 @@ type ResourceTag struct {
 	ResourceTagName  string   `yaml:"resource_tag_name"`
 	ResourceTagValue string   `yaml:"resource_tag_value"`
 	MetricNamespace  string   `yaml:"metric_namespace"`
+	MetricFilter     string   `yaml:"metric_filter"`
 	ResourceTypes    []string `yaml:"resource_types"`
 	Metrics          []Metric `yaml:"metrics"`
 	Aggregations     []string `yaml:"aggregations"`
