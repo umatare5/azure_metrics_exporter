@@ -22,14 +22,15 @@ var (
 	sc = &config.SafeConfig{
 		C: &config.Config{},
 	}
-	ac                    = NewAzureClient()
-	configFile            = kingpin.Flag("config.file", "Azure exporter configuration file.").Default("azure.yml").String()
-	listenAddress         = kingpin.Flag("web.listen-address", "The address to listen on for HTTP requests.").Default(":9276").String()
-	listMetricDefinitions = kingpin.Flag("list.definitions", "List available metric definitions for the given resources and exit.").Bool()
-	listMetricNamespaces  = kingpin.Flag("list.namespaces", "List available metric namespaces for the given resources and exit.").Bool()
-	invalidMetricChars    = regexp.MustCompile("[^a-zA-Z0-9_:]")
-	azureErrorDesc        = prometheus.NewDesc("azure_error", "Error collecting metrics", nil, nil)
-	batchSize             = 20
+	ac                      = NewAzureClient()
+	configFile              = kingpin.Flag("config.file", "Azure exporter configuration file.").Default("azure.yml").String()
+	listenAddress           = kingpin.Flag("web.listen-address", "The address to listen on for HTTP requests.").Default(":9276").String()
+	listMetricDefinitions   = kingpin.Flag("list.definitions", "List available metric definitions for the given resources and exit.").Bool()
+	listMetricNamespaces    = kingpin.Flag("list.namespaces", "List available metric namespaces for the given resources and exit.").Bool()
+	invalidMetricChars      = regexp.MustCompile("[^a-zA-Z0-9_]")
+	multipleUnderscoreChars = regexp.MustCompile("_+")
+	azureErrorDesc          = prometheus.NewDesc("azure_error", "Error collecting metrics", nil, nil)
+	batchSize               = 20
 )
 
 func init() {
@@ -120,7 +121,9 @@ func createMetricName(name string, unit string, namespace string) string {
 	if !strings.HasPrefix(name, "azure.") {
 		name = "azure_" + name
 	}
-	return invalidMetricChars.ReplaceAllString(name, "_")
+	name = invalidMetricChars.ReplaceAllString(name, "_")
+	name = multipleUnderscoreChars.ReplaceAllString(name, "_")
+	return name
 }
 
 func generateMetric(ch chan<- prometheus.Metric, metricName string, aggregation string, value float64, labels map[string]string, aggregations []string) {
