@@ -22,15 +22,15 @@ var (
 	sc = &config.SafeConfig{
 		C: &config.Config{},
 	}
-	ac                    = NewAzureClient()
-	configFile            = kingpin.Flag("config.file", "Azure exporter configuration file.").Default("azure.yml").String()
-	listenAddress         = kingpin.Flag("web.listen-address", "The address to listen on for HTTP requests.").Default(":9276").String()
-	listMetricDefinitions = kingpin.Flag("list.definitions", "List available metric definitions for the given resources and exit.").Bool()
-	listMetricNamespaces  = kingpin.Flag("list.namespaces", "List available metric namespaces for the given resources and exit.").Bool()
-	invalidMetricChars    = regexp.MustCompile("[^a-zA-Z0-9_]")
+	ac                      = NewAzureClient()
+	configFile              = kingpin.Flag("config.file", "Azure exporter configuration file.").Default("azure.yml").String()
+	listenAddress           = kingpin.Flag("web.listen-address", "The address to listen on for HTTP requests.").Default(":9276").String()
+	listMetricDefinitions   = kingpin.Flag("list.definitions", "List available metric definitions for the given resources and exit.").Bool()
+	listMetricNamespaces    = kingpin.Flag("list.namespaces", "List available metric namespaces for the given resources and exit.").Bool()
+	invalidMetricChars      = regexp.MustCompile("[^a-zA-Z0-9_]")
 	multipleUnderscoreChars = regexp.MustCompile("_+")
-	azureErrorDesc        = prometheus.NewDesc("azure_error", "Error collecting metrics", nil, nil)
-	batchSize             = 20
+	azureErrorDesc          = prometheus.NewDesc("azure_error", "Error collecting metrics", nil, nil)
+	batchSize               = 20
 )
 
 func init() {
