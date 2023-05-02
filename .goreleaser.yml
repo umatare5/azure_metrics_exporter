@@ -2,7 +2,7 @@ project_name: azure_metrics_exporter
 
 env:
   - GO111MODULE=on
-  - BIN_VERSION=0.1.0-pre5
+  - BIN_VERSION=0.1.0-pre6
 
 # Build destination
 github_urls:
